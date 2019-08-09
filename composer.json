@@ -1,0 +1,32 @@
+{
+    "name": "frdl/context",
+    "license": "MIT",
+    "description": "An ArrayObject with DotNotation accessor",
+ 
+    "require": {
+        "php": ">=7.1.0",
+        "adbario/php-dot-notation" : "2.2.0"
+    },
+
+    "config": {
+
+    },
+    "autoload": {
+        "psr-4": {
+            "frdl\\": "src/frdl/"
+        }
+    },
+
+    "replace": {
+    
+    },
+    "scripts": {
+     
+    },
+    "conflict": {
+        
+    },
+    "extra": {
+   
+    }
+}
