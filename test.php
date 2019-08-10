@@ -4,6 +4,11 @@ use frdl\Context as Context;
 
 die('Comment out this line: '.__FILE__.' '.__LINE__);
 
-$context =  eval(Context::createContextFunctionAsString());
+eval(Context::createContextFunctionAsString());
 
-print_r($context);
+$context(function(){
+  print_r(func_get_args());
+  print_r(compact(array_keys(get_defined_vars())));
+});
+
+
