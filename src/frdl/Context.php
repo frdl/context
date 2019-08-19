@@ -28,10 +28,12 @@ class Context
       return new NotFoundException;
   }
     
+  public function &__get($name){
+    return ($this->context->has($name)) ?  $this->context->get($name) :  new NotFoundException; 
+  }
   
   public function __invoke(\Closure $script) {
-      $context = &$this->context;
-      return $script(extract($context));      
+      return $script($this->context);      
   }
 
   public function __set($name, $value) {
