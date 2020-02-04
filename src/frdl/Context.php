@@ -1,9 +1,5 @@
 <?php
-
 namespace frdl;
-
-
-
 class Context
 {
   
@@ -35,11 +31,13 @@ class Context
   public function __invoke(\Closure $script) {
       return $script($this->context);      
   }
-
   public function __set($name, $value) {
       call_user_func_array([$this->context, 'set'], [$name, $value]);  
       return $this;
   } 
+  public function flatten() {
+     return call_user_func_array([$this->context, 'flatten'], func_get_args());  
+  } 	
   public function link(&$items) {
       $this->context->setReference($items);
       return $this;
@@ -50,6 +48,59 @@ class Context
       return $context;
   }
   
+	
+  public function resolvePlaceholder(string $str,array $data = null, string $prefix = '${', string $suffix = '}'){
+	  if(null === $data){
+		$data =  $this->context ->flatten();
+	  }
+	  
+	  $dataSource = new \Dflydev\PlaceholderResolver\DataSource\ArrayDataSource($data) ;
+      $placeholderResolver = new \Dflydev\PlaceholderResolver\RegexPlaceholderResolver($dataSource, $prefix, $suffix);	  
+	  return $placeholderResolver->resolvePlaceholder($str);
+  }
+
+  public function resolve($payload = null, string $prefix = '${', string $suffix = '}'){
+	
+	  $data = $this->context ->flatten();
+	 	  
+	  switch ($payload){
+		  case is_string($payload) :
+			   $payload =  $this->context->get($payload);
+			  break;
+		  case is_array($payload) :
+			   $data = $payload;
+			  break;
+		  case null : 
+			 default : 
+			   $payload =  $data;
+			  break;
+			  
+	  }
+	  
+	  $dataSource = new \Dflydev\PlaceholderResolver\DataSource\ArrayDataSource($data) ;
+	  
+      $placeholderResolver = new \Dflydev\PlaceholderResolver\RegexPlaceholderResolver($dataSource, $prefix, $suffix);	  
+	   
+	  if(is_array($payload)){
+		 $a = $payload;
+		  $c = self::create($a);
+		  $fn;		   
+           foreach($c->flatten() as $k => $v){
+			  if(is_string($v)){
+				  $v = $placeholderResolver->resolvePlaceholder($v);
+			  }
+			  $c->set($k, $v);
+		     }		  
+		  return $c;		 
+	  }elseif(is_string($payload)){
+		  return $placeholderResolver->resolvePlaceholder($payload);
+	  }else{
+		  return $payload;
+	  }
+	 
+  }
+	
+	
   public static function createContextFunctionAsString() : string {
       
     $ContextClass = self::class;  
@@ -68,10 +119,7 @@ class Context
           
       
 PHPCODETOEVALOUTSIDE;
-
     return $evalMe;
   }
   
-
-
 }
