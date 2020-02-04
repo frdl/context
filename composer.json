@@ -5,7 +5,8 @@
  
     "require": {
         "php": ">=7.1.0",
-        "adbario/php-dot-notation" : "2.2.0"
+        "adbario/php-dot-notation" : "2.2.0",
+        "dflydev/placeholder-resolver" : "1.0.2"
     },
 
     "config": {
