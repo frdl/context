@@ -48,6 +48,33 @@ class Context
       return $context;
   }
   
+
+  public function export(string $file, bool $makeDir = null, bool $throw = null){
+	  if(!\is_bool($makeDir)){
+	    $makeDir = true;	  
+	  }
+	  if(!\is_bool($throw)){
+	    $throw = true;	  
+	  }	  
+	  $dir = \dirname($file);
+	  $items = $this->context->all();
+	  $exports = \var_export($items, true);
+	  $php = <<<PHPCODE
+<?php
+return $exports;
+PHPCODE;
+	  
+	 $sucess = ( ( \is_dir($dir) && \is_writable($dir) )
+		 || (true === $makeDir && @\mdir($dir, 0755, true))
+	       )
+		 && @\file_put_contents($file, $php);
+	  
+	  if(true!==$sucess && false !== $throw){
+	    throw new \Exception(\sprintf('Error writing "%s" in %s', $file, __METHOD__));	  
+	  }	  
+	  
+   return $sucess;
+  }
 	
   public function resolvePlaceholder(string $str,array $data = null, string $prefix = '${', string $suffix = '}'){
 	  if(null === $data){
