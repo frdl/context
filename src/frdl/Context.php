@@ -49,15 +49,48 @@ class Context
   }
   
 
-  public function export(string $file, bool $makeDir = null, bool $throw = null){
+ public function import(string $file, bool $throw = null){
+	  if(!\is_bool($throw)){
+	    $throw = false;	  
+	  }
+	 
+    $exists = \file_exists($file);
+    if(!$exists && $throw){
+	throw new \Exception(\sprintf('File "%s" does not exist in %s', $file, __METHOD__));    
+    }elseif(!$exists){
+	return false;    
+    }
+    $extension = \pathinfo($file, \PATHINFO_EXTENSION); 
+  
+  if('json' === $extension){	 
+    $data = \file_get_contents($file);
+    $data = \json_decode($data);
+    $data = (array)$data;	  
+  }elseif('php' ===\substr($extension,0,\strlen('php'))){
+	$data = require $file;  
+  }
+	 
+	foreach($data as $key => $value){
+	   $this->context->set($key, $value);
+	}
+    	
+   return true;	 
+ }
+	
+	
+  public function export(string $file, string $prepend = null, bool $makeDir = null, bool $throw = null){
 	  if(!\is_bool($makeDir)){
 	    $makeDir = true;	  
 	  }
 	  if(!\is_bool($throw)){
 	    $throw = true;	  
 	  }	  
+	  if(!\is_string($prepend)){
+	    $prepend = '';	  
+	  }	  
 	  $dir = \dirname($file);
-	  $exports = \var_export($this->context->all(), true);
+	//  $exports = \var_export($this->context->all(), true);
+	  $exports = \var_export($this->context->flatten('.', null, $prepend), true);
 	  $methodDescription = __METHOD__;
 	  $time = time();
 	  
@@ -69,7 +102,6 @@ class Context
 * @time		$time
 * @role		data
 */
-
 return $exports;
 PHPCODE;
 	  
