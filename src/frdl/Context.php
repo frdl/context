@@ -57,10 +57,19 @@ class Context
 	    $throw = true;	  
 	  }	  
 	  $dir = \dirname($file);
-	  $items = $this->context->all();
-	  $exports = \var_export($items, true);
+	  $exports = \var_export($this->context->all(), true);
+	  $methodDescription = __METHOD__;
+	  $time = time();
+	  
 	  $php = <<<PHPCODE
 <?php
+/**
+* This file was generated automatically by
+* @method	$methodDescription
+* @time		$time
+* @role		data
+*/
+
 return $exports;
 PHPCODE;
 	  
