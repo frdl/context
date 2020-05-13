@@ -54,16 +54,19 @@ class Context implements ContainerInterface
     public function get($id)
     {
 	$i = $id;
+	$idResolved = $this->resolvePlaceholder($id);    
 	$numParts = count(explode('.', $id));    
 	$container = $this;
 	$path = [];    
-	$result = ($this->context->has($id)) ?  $this->context->get($id) :  new NotFoundException; 
+	$result = ($this->context->has($id)) ?  $this->context->get($id) 
+		: (($this->context->has($idResolved)) ?  $this->context->get($idResolved) 
+		:  new NotFoundException); 
 	while(is_object($result) && $result instanceof NotFoundException 
 	   //   && is_object($container) && $container instanceof ContainerInterface
 	      && count($path) < $numParts
 	     ){
 	      list($prefix, $i) = explode('.', $i, 2);
-	      $path[]=$prefix;
+	      $path[]=$this->resolvePlaceholder($prefix);
 	      $container = $container->get(implode('.', $path)); 	
 	      $result = (is_object($container) && $container instanceof ContainerInterface 
 			  && $container->has($i)
@@ -80,7 +83,7 @@ class Context implements ContainerInterface
        }else{
 	    $result = call_user_func_array($result, [$this]);    
        }
-	$this->context->set($id, $result);
+	$this->context->set($this->resolvePlaceholder($id), $result);
     }	    
 	    
        return $result;
@@ -92,7 +95,8 @@ class Context implements ContainerInterface
 	$numParts = count(explode('.', $id));    
 	$container = $this;
 	$path = [];    
-	$result = ($this->context->has($id)) ? true :  false; 
+	$result = ($this->context->has($id)) ? true : 
+	    ($this->context->has($this->resolvePlaceholder($id))) ? true :  false; 
 	while(is_bool($result) && true !== $result
 	    //  && is_object($container) && $container instanceof ContainerInterface
 	      && count($path) < $numParts
