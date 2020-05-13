@@ -28,7 +28,7 @@ class Context implements ContainerInterface
   }
     
   public function &__get($name){
-    return ($this->context->has($name)) ?  $this->context->get($name) :  new NotFoundException; 
+    return $this->get($name); 
   }
   
   public function __invoke(\Closure $script) {
