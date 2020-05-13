@@ -71,6 +71,17 @@ class Context implements ContainerInterface
 		      ?  $container->get($i)
 		      :  new NotFoundException; 	
 	}	    
+	
+    if(is_callable($result) ){	    
+       if(is_callable([$container, 'call'])){	       
+	    $result = call_user_func_array([$container, 'call'], [$result]);   
+       }elseif(is_callable([$container, 'make'])){
+	    $result = call_user_func_array([$container, 'make'], [$result]);   
+       }else{
+	    $result = call_user_func_array($result, [$this]);    
+       }
+	$this->context->set($id, $result);
+    }	    
 	    
        return $result;
     }
