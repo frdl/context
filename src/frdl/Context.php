@@ -59,7 +59,7 @@ class Context implements ContainerInterface
 	$path = [];    
 	$result = ($this->context->has($id)) ?  $this->context->get($id) :  new NotFoundException; 
 	while(is_object($result) && $result instanceof NotFoundException 
-	      && is_object($container) && $container instanceof ContainerInterface
+	   //   && is_object($container) && $container instanceof ContainerInterface
 	      && count($path) < $numParts
 	     ){
 	      list($prefix, $i) = explode('.', $i, 2);
@@ -83,7 +83,7 @@ class Context implements ContainerInterface
 	$path = [];    
 	$result = ($this->context->has($id)) ? true :  false; 
 	while(is_bool($result) && true !== $result
-	      && is_object($container) && $container instanceof ContainerInterface
+	    //  && is_object($container) && $container instanceof ContainerInterface
 	      && count($path) < $numParts
 	     ){
 	      list($prefix, $i) = explode('.', $i, 2);
