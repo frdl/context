@@ -7,6 +7,7 @@ class Context implements ContainerInterface
 {
   
   protected $context;   
+  protected static $factories = [];	
   protected function __construct(){      
      $class = \Adbar\Dot::class;
      $this->context= new $class;
@@ -75,7 +76,8 @@ class Context implements ContainerInterface
 		      :  new NotFoundException; 	
 	}	    
 	
-    if(is_callable($result) ){	    
+    if(is_callable($result) 
+       && !(isset(self::$factories[\spl_object_id($result)]) && self::$factories[\spl_object_id($result)] === $idResolved) ){	    
        if(is_callable([$container, 'call'])){	       
 	    $result = call_user_func_array([$container, 'call'], [$result]);   
        }elseif(is_callable([$container, 'make'])){
@@ -83,6 +85,10 @@ class Context implements ContainerInterface
        }else{
 	    $result = call_user_func_array($result, [$this]);    
        }
+	    
+	if(is_callable($result)){
+	    self::$factories[\spl_object_id($result)] = $idResolved;	
+	}
 	$this->context->set($idResolved, $result);
     }	    
 	    
