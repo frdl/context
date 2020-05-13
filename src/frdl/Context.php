@@ -83,7 +83,7 @@ class Context implements ContainerInterface
        }else{
 	    $result = call_user_func_array($result, [$this]);    
        }
-	$this->context->set($this->resolvePlaceholder($id), $result);
+	$this->context->set($idResolved, $result);
     }	    
 	    
        return $result;
