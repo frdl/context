@@ -66,14 +66,39 @@ class Context implements ContainerInterface
 	      $path[]=$prefix;
 	      $container = $container->get(implode('.', $path)); 	
 	      $result = (is_object($container) && $container instanceof ContainerInterface 
-			  && $this->context->has($i)
+			  && $container->has($i)
 			)
-		      ?  $this->context->get($i)
+		      ?  $container->get($i)
 		      :  new NotFoundException; 	
 	}	    
 	    
        return $result;
     }
+	
+    public function has($id)
+    {
+	$i = $id;
+	$numParts = count(explode('.', $id));    
+	$container = $this;
+	$path = [];    
+	$result = ($this->context->has($id)) ? true :  false; 
+	while(is_bool($result) && true !== $result
+	      && is_object($container) && $container instanceof ContainerInterface
+	      && count($path) < $numParts
+	     ){
+	      list($prefix, $i) = explode('.', $i, 2);
+	      $path[]=$prefix;
+	      $container = $container->get(implode('.', $path)); 	
+	      $result = (is_object($container) && $container instanceof ContainerInterface 
+			  && $container->has($i)
+			)
+		      ?  true
+		      :  false; 	
+	}	    
+	    
+       return $result;
+    }	
+	
 	
  public function import(string $file, bool $throw = null){
 	  if(!\is_bool($throw)){
