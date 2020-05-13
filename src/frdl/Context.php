@@ -102,7 +102,7 @@ class Context implements ContainerInterface
 	      && count($path) < $numParts
 	     ){
 	      list($prefix, $i) = explode('.', $i, 2);
-	      $path[]=$prefix;
+	      $path[]=$this->resolvePlaceholder($prefix);
 	      $container = $container->get(implode('.', $path)); 	
 	      $result = (is_object($container) && $container instanceof ContainerInterface 
 			  && $container->has($i)
