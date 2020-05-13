@@ -1,6 +1,9 @@
 <?php
 namespace frdl;
-class Context
+
+use Psr\Container\ContainerInterface;
+
+class Context implements ContainerInterface
 {
   
   protected $context;   
@@ -48,7 +51,30 @@ class Context
       return $context;
   }
   
-
+    public function get($id)
+    {
+	$i = $id;
+	$numParts = count(explode('.', $id));    
+	$container = $this;
+	$path = [];    
+	$result = ($this->context->has($id)) ?  $this->context->get($id) :  new NotFoundException; 
+	while(is_object($result) && $result instanceof NotFoundException 
+	      && is_object($container) && $container instanceof ContainerInterface
+	      && count($path) < $numParts
+	     ){
+	      list($prefix, $i) = explode('.', $i, 2);
+	      $path[]=$prefix;
+	      $container = $container->get(implode('.', $path)); 	
+	      $result = (is_object($container) && $container instanceof ContainerInterface 
+			  && $this->context->has($i)
+			)
+		      ?  $this->context->get($i)
+		      :  new NotFoundException; 	
+	}	    
+	    
+       return $result;
+    }
+	
  public function import(string $file, bool $throw = null){
 	  if(!\is_bool($throw)){
 	    $throw = false;	  
