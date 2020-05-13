@@ -121,10 +121,13 @@ class Context implements ContainerInterface
     }	
 	
 	
- public function import(string $file, bool $throw = null){
+ public function import(string $file, string $add = null, bool $throw = null){
 	  if(!\is_bool($throw)){
 	    $throw = false;	  
 	  }
+	  if(!\is_string($add)){
+	    $add = '';	  
+	  }	  
 	 
     $exists = \file_exists($file);
     if(!$exists && $throw){
@@ -137,13 +140,19 @@ class Context implements ContainerInterface
   if('json' === $extension){	 
     $data = \file_get_contents($file);
     $data = \json_decode($data);
-    $data = (array)$data;	  
   }elseif('php' ===\substr($extension,0,\strlen('php'))){
 	$data = require $file;  
   }
+    $data = (array)$data;	  
 	 
 	foreach($data as $key => $value){
-	   $this->context->set($key, $value);
+	   if('.'===substr($add,0,1) && '.'!==substr($add,-1) ){
+		$this->context->set($key.$add, $value);   
+	   }elseif('.'!==substr($add,0,1) && '.'===substr($add,-1) ){
+		$this->context->set($add.$key, $value);   
+	   }elseif(0<strlen($key)){
+	        $this->context->set(trim($add,'.').'.'.$key, $value);
+	   }
 	}
     	
    return true;	 
