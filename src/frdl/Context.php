@@ -14,8 +14,10 @@ class Context implements ContainerInterface
   protected function __construct(string $prefix = '${', string $suffix = '}'){      
      $class = \Adbar\Dot::class;
      $this->context= new $class;
-     $this->pfx($prefix);
-     $this->sfx($suffix);	  
+     $this
+	     ->pfx($prefix)
+	     ->sfx($suffix)
+	    ;	  
   }
 	
   public function pfx(string $prefix = '${') {
