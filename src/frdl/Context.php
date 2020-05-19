@@ -7,12 +7,34 @@ class Context implements ContainerInterface
 {
   
   protected $context;   
-  protected static $factories = [];	
-  protected function __construct(){      
+  protected static $factories = [];
+  protected $_prefix = '${';	
+  protected $_suffix = '}';	
+	
+  protected function __construct(string $prefix = '${', string $suffix = '}'){      
      $class = \Adbar\Dot::class;
      $this->context= new $class;
+     $this->pfx($prefix);
+     $this->sfx($suffix);	  
   }
-    
+	
+  public function pfx(string $prefix = '${') {
+      $this->_prefix = $prefix;
+      return $this;	  
+  }
+  public function prefix(string $prefix = '${') {
+     return call_user_func_array([$this, 'pfx'], func_get_args());  
+  } 		
+	
+	
+  public function sfx(string $suffix = '}') {
+      $this->_suffix = $suffix;
+      return $this;	  
+  }	
+  public function suffix(string $suffix = '}') {
+     return call_user_func_array([$this, 'sfx'], func_get_args());  
+  } 	
+	
   public function __call($name, $arguments) {
       if($this->context->has($name)){
           if(is_callable($this->context->get($name))){
@@ -28,6 +50,7 @@ class Context implements ContainerInterface
       return new NotFoundException;
   }
     
+	
   public function &__get($name){
     return $this->get($name); 
   }
@@ -198,7 +221,14 @@ PHPCODE;
    return $sucess;
   }
 	
-  public function resolvePlaceholder(string $str,array $data = null, string $prefix = '${', string $suffix = '}'){
+  public function resolvePlaceholder(string $str,array $data = null, string $prefix = null, string $suffix = null){
+	  if(null===$prefix){
+	    $prefix = $this->_prefix;
+	  }
+	  if(null===$suffix){
+	    $suffix = $this->_suffix;
+	  }
+	  
 	  if(null === $data){
 		$data =  $this->context ->flatten();
 	  }
@@ -208,8 +238,16 @@ PHPCODE;
 	  return $placeholderResolver->resolvePlaceholder($str);
   }
 
-  public function resolve($payload = null, string $prefix = '${', string $suffix = '}'){
+  public function resolve($payload = null, string $prefix = null, string $suffix = null){
 	
+	  if(null===$prefix){
+	    $prefix = $this->_prefix;
+	  }
+	  if(null===$suffix){
+	    $suffix = $this->_suffix;
+	  }	  
+	  
+	  
 	  $data = $this->context ->flatten();
 	 	  
 	  switch ($payload){
