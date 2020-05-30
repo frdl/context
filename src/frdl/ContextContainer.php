@@ -27,7 +27,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	    ;	  
 	  
 	  $this->containers = [
-	    $this
+	//    $this
 	  ];
   }
 	
