@@ -8,7 +8,8 @@
         "psr/container": "^1.0",
         "acclimate/container" : "2.0.0",
         "adbario/php-dot-notation" : "2.2.0",
-        "dflydev/placeholder-resolver" : "1.0.2"
+        "dflydev/placeholder-resolver" : "1.0.2",
+        "jeremeamia/superclosure" : "2.4.0"
     },
 
     "config": {
