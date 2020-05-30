@@ -1,10 +1,11 @@
 {
     "name": "frdl/context",
     "license": "MIT",
-    "description": "An ArrayObject with DotNotation accessor",
- 
+    "description": "An ArrayObject with DotNotation accessor, ContextContainer class as CompositeContainer",
+    "type" : "frdl-module",
     "require": {
         "php": ">=7.1.0",
+        "frdl/frdlweb-composer-installers" : ">=0.2",
         "adbario/php-dot-notation" : "2.2.0",
         "dflydev/placeholder-resolver" : "1.0.2",
         "psr/container": "^1.0"
