@@ -6,41 +6,138 @@ use Psr\Container\ContainerInterface;
 use Acclimate\Container\CompositeContainer;
 
 
-class ContextContainer extends CompositeContainer implements ContainerInterface, \ArrayAccess
+class ContextContainer extends CompositeContainer implements ContainerInterface, \ArrayAccess,  \Serializable
 {
   
-  protected $context;   
-  protected $containers;   
+  protected $context = null;   
+  protected $containers = [];  
+  protected $containerObjectIds = [];  
   protected static $factories = [];
   protected $_prefix = '${';	
   protected $_suffix = '}';	
-	
+  protected $SecretSigningKey = null;	
 
 
 	
   protected function __construct(string $prefix = '${', string $suffix = '}'){      
-     $class = \Adbar\Dot::class;
-     $this->context= new $class;
+   //  $class = \Adbar\Dot::class;
+   //  $this->context= new $class;
      $this
 	     ->pfx($prefix)
 	     ->sfx($suffix)
 	    ;	  
 	  
 	  $this->containers = [
-	//    $this
+	    //$this
 	  ];
   }
 	
+  public function getSerializableProperties(){
+	return [	
+		'context',	  
+		'cotainers',
+		'_prefix',
+		'_suffix',
+	];  	  
+  }
+	
+	
+  public function getSerializer() {
+	   $this->defaultInit();
+     $analyzer = new \SuperClosure\Analyzer\AstAnalyzer();	
+     $serializer = new ContextContainerSerializer($analyzer, (null=== $this->SecretSigningKey) ? null : $this->SecretSigningKey);
+     return [$analyzer, $serializer];
+  }	
+	
+	
+  public function serialize()   {	  
+     list($analyzer, $serializer) =  $this->getSerializer();
+	  
+	  $props = $this->getSerializableProperties();
+	  
+	  $p = [
+	  
+	  ];
+	  
+	  foreach($props as $prop){
+		  $p[$prop] = $this->{$prop};
+	  }
+	  
+	  
+	  $load = (function(ContextContainer &$instance) use($p, $props){
+	     foreach($props as $prop){
+		   $instance->{$prop} = $p[$prop];
+	     }		  
+	  });
+	  
+	  
+	   $str = $serializer->serialize($load);	  
+	  return $str;
+  }
+
+   
+
+
+
+  
+	public function unserialize( $str)  {
+         list($analyzer, $serializer) =  $this->getSerializer();
+		
+		 $load = $serializer->unserialize($str);
+		 $load($this);
+    }  
+	
+
+	public function setSecretSigningKey($key){  
+		$this->SecretSigningKey = $key;   
+		return $this;
+	} 
+	
+ public function defaultInit(){
+	 if(null === $this->context){
+		 $context = new \Adbar\Dot;
+		$this->setContext($context); 
+	 } 	 
+	 
+	 if($this->has('config.keys.code-serializer')){
+		 $this->setSecretSigningKey($this->get('config.keys.code-serializer'));
+	 }
+	 
+	 return $this; 
+ }
+
+ public function setContext(\ArrayAccess $context){
+		 
+	 if(null !== $this->context){
+		throw new \Exception('$context was applied already in '.__METHOD__); 
+	 } 
+	 
+	 $methods = ['has','get','set','flatten'];
+	 
+	 foreach($methods as $m){
+		if(!is_callable([$context,$m])){
+			throw new \Exception('$context MUST imlement '.get_class($context).'::'.$m.' in '.__METHOD__); 
+		}
+	 }
+	 
+	 $this->context = $context;	 
+	return $this; 
+ }
+	
+	
  public function offsetExists (  $offset ) : bool {
   // return call_user_func_array([$this->context, 'offsetExists'], func_get_args());
-	    return isset($this->context[$offset]);
+	 $this->defaultInit();
+	return isset($this->context[$offset]);
  }
  public function offsetGet (  $offset ) : mixed {
  // return call_user_func_array([$this->context, 'offsetGet'], func_get_args());
+	 $this->defaultInit();
 	  return isset($this->context[$offset]) ? $this->context[$offset] : null;
  }
  public function offsetSet (  $offset ,  $value ) : void {
-   //call_user_func_array([$this->context, 'offsetSet'], func_get_args());	     
+   //call_user_func_array([$this->context, 'offsetSet'], func_get_args());	   
+	 $this->defaultInit();
 	    if (is_null($offset)) {
             $this->context[] = $value;
         } else {
@@ -49,6 +146,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
  }
  public function offsetUnset (  $offset ) : void	 {
   // call_user_func_array([$this->context, 'offsetUnset'], func_get_args());
+	 $this->defaultInit();
 	  unset($this->context[$offset]);
  }	
 	
@@ -72,14 +170,16 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   } 	
 	
   public function __call($name, $arguments) {
-      if($this->context->has($name)){
+	//  $this->defaultInit();
+	  
+      if(null!== $this->context && $this->context->has($name)){
           if(is_callable($this->context->get($name))){
               return call_user_func_array($this->context->get($name), $arguments);
           }
           return $this->context->get($name);
       }
       
-      if(is_callable([$this->context, $name])){
+      if(null!== $this->context && is_callable([$this->context, $name])){
           return call_user_func_array([$this->context, $name], $arguments);
       }
       
@@ -98,23 +198,28 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   }
   
   public function __invoke(callable $script) {
-	  print_r($script);
-      return $script($this->context);      
+	   $this->defaultInit();
+	 return $script($this->context);      
   }
   public function __set($name, $value) {
+	   $this->defaultInit();
       call_user_func_array([$this->context, 'set'], [$name, $value]);  
       return $this;
   } 
   public function flatten() {
+	   $this->defaultInit();
      return call_user_func_array([$this->context, 'flatten'], func_get_args());  
   } 	
   public function link(&$items) {
+	   $this->defaultInit();
       $this->context->setReference($items);
       return $this;
   }
-  public static function create(&$items, string $prefix = '${', string $suffix = '}'){      
+  public static function create(&$items = null, string $prefix = '${', string $suffix = '}'){      
       $context = new self($prefix, $suffix);
-      $context->link($items);
+      if(null!==$items){
+		  $context->link($items);
+	  }
       return $context;
   }
   
@@ -132,8 +237,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	
 	
    public function get($id)
-    {  
-	  
+    {  	  
        
         foreach ($this->containers as $container) {
              if ( \spl_object_id($container) !== \spl_object_id($this) && $container->has($id)) {
@@ -142,29 +246,19 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
         }
 
 	   
-	   return $this->_get($id);
+	   $result = ($this->_has($id)) 
+		   ? $this->_get($id)
+		   : NotFoundException::fromPrevious($id);
        // throw NotFoundException::fromPrevious($id);
+	   if(is_object($result) && $result instanceof \Throwable){
+		   throw $result;
+		   return null;
+	   }
+	   
+	   return $result;
     }	
 	
-	/*
-   public function get($id)
-    {
-	   
-	  
-       
-        foreach ($this->containers as $container) {
-             if ( \spl_object_id($container) !== \spl_object_id($this) && (($container instanceof self && $container->_has($id)) || $container->has($id) )) {
-                return ($container instanceof self && $container->_has($id) && true!==$container->_get($id) instanceof NotFoundException )
-					? $container->_get($id)
-					: $container->get($id);
-            }
-        }
 
-	   
-	   return $this->_get($id);
-       // throw NotFoundException::fromPrevious($id);
-    }	
-	*/
    public function has($id)
     {
         /** @var ContainerInterface $container */
@@ -180,6 +274,8 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	
     public function _get($id)
     {
+		 $this->defaultInit();
+		
 	$i = $id;
 	$idResolved = $this->resolvePlaceholder($id);    
 	$numParts = count(explode('.', $id));    
@@ -230,6 +326,8 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	
     public function _has($id)
     {
+		 $this->defaultInit();
+		
 	$i = $id;
 	$idResolved = $this->resolvePlaceholder($id);    	
 	$numParts = count(explode('.', $id));    
@@ -258,6 +356,8 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	
 	
  public function import(string $file, string $add = null, bool $throw = null){
+	  $this->defaultInit();
+	 
 	  if(!\is_bool($throw)){
 	    $throw = false;	  
 	  }
@@ -296,6 +396,8 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	
 	
   public function export(string $file, string $prepend = null, bool $makeDir = null, bool $throw = null){
+	   $this->defaultInit();
+	  
 	  if(!\is_bool($makeDir)){
 	    $makeDir = true;	  
 	  }
@@ -335,6 +437,8 @@ PHPCODE;
   }
 	
   public function resolvePlaceholder(string $str,array $data = null, string $prefix = null, string $suffix = null){
+	  
+	  
 	  if(null===$prefix){
 	    $prefix = $this->_prefix;
 	  }
@@ -343,6 +447,7 @@ PHPCODE;
 	  }
 	  
 	  if(null === $data){
+		  $this->defaultInit();
 		$data =  $this->context ->flatten();
 	  }
 	  
@@ -353,6 +458,8 @@ PHPCODE;
 
   public function resolve($payload = null, string $prefix = null, string $suffix = null){
 	
+	   $this->defaultInit();
+	  
 	  if(null===$prefix){
 	    $prefix = $this->_prefix;
 	  }
