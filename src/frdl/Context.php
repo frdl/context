@@ -80,70 +80,12 @@ class Context implements ContainerInterface
 	
     public function get($id)
     {
-	$i = $id;
-	$idResolved = $this->resolvePlaceholder($id);    
-	$numParts = count(explode('.', $id));    
-	$container = $this;
-	$path = [];    
-	$result = ($this->context->has($id)) ?  $this->context->get($id) 
-		: (($this->context->has($idResolved)) ?  $this->context->get($idResolved) 
-		:  new NotFoundException); 
-	while(is_object($result) && $result instanceof NotFoundException 
-	   //   && is_object($container) && $container instanceof ContainerInterface
-	      && count($path) < $numParts
-	     ){
-	      list($prefix, $i) = explode('.', $i, 2);
-	      $path[]=$this->resolvePlaceholder($prefix);
-	      $container = $container->get(implode('.', $path)); 	
-	      $result = (is_object($container) && $container instanceof ContainerInterface 
-			  && $container->has($i)
-			)
-		      ?  $container->get($i)
-		      :  new NotFoundException; 	
-	}	    
-	
-    if(is_callable($result) 
-       && !(isset(self::$factories[\spl_object_id($result)]) && self::$factories[\spl_object_id($result)] === $idResolved) ){	    
-       if(is_callable([$container, 'call'])){	       
-	    $result = call_user_func_array([$container, 'call'], [$result]);   
-       }elseif(is_callable([$container, 'make'])){
-	    $result = call_user_func_array([$container, 'make'], [$result]);   
-       }else{
-	    $result = call_user_func_array($result, [$this]);    
-       }
-	    
-	if(is_callable($result)){
-	    self::$factories[\spl_object_id($result)] = $idResolved;	
-	}
-	$this->context->set($idResolved, $result);
-    }	    
-	    
-       return $result;
+        return call_user_func_array([$this->context, 'get'], \func_get_args());
     }
 	
     public function has($id)
     {
-	$i = $id;
-	$numParts = count(explode('.', $id));    
-	$container = $this;
-	$path = [];    
-	$result = ($this->context->has($id)) ? true : 
-	    ($this->context->has($this->resolvePlaceholder($id))) ? true :  false; 
-	while(is_bool($result) && true !== $result
-	    //  && is_object($container) && $container instanceof ContainerInterface
-	      && count($path) < $numParts
-	     ){
-	      list($prefix, $i) = explode('.', $i, 2);
-	      $path[]=$this->resolvePlaceholder($prefix);
-	      $container = $container->get(implode('.', $path)); 	
-	      $result = (is_object($container) && $container instanceof ContainerInterface 
-			  && $container->has($i)
-			)
-		      ?  true
-		      :  false; 	
-	}	    
-	    
-       return $result;
+	return call_user_func_array([$this->context, 'has'], \func_get_args());
     }	
 	
 	
