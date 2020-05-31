@@ -4,6 +4,7 @@ namespace frdl;
 
 use Psr\Container\ContainerInterface;
 use Acclimate\Container\CompositeContainer;
+use frdl\ContextContainerSerializer;
 
 
 class ContextContainer extends CompositeContainer implements ContainerInterface, \ArrayAccess,  \Serializable
@@ -34,10 +35,10 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	
   public function getSerializableProperties(){
 	return [	
-		'context',	  
-		'cotainers',
-		'_prefix',
-		'_suffix',
+		'context' => 'setContext',	  
+		'cotainers' => 'setCotainers',
+		'_prefix' => 'pfx',
+		'_suffix' => 'sfx',
 	];  	  
   }
 	
@@ -50,7 +51,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   }	
 	
 	
-  public function serialize()   {	  
+  public function serialize() {	  
      list($analyzer, $serializer) =  $this->getSerializer();
 	  
 	  $props = $this->getSerializableProperties();
@@ -59,14 +60,14 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	  
 	  ];
 	  
-	  foreach($props as $prop){
+	  foreach(\array_keys($props) as $prop){
 		  $p[$prop] = $this->{$prop};
 	  }
 	  
 	  
 	  $load = (function(ContextContainer &$instance) use($p, $props){
-	     foreach($props as $prop){
-		   $instance->{$prop} = $p[$prop];
+	     foreach($props as $prop => $method){
+		     call_user_func_array([$instance, $method], [$p[$prop]]);
 	     }		  
 	  });
 	  
@@ -105,7 +106,13 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	 
 	 return $this; 
  }
-
+	
+ public function setContainers(array $containers){
+	 $this->containers = $containers;	 
+	return $this; 
+ }
+	
+	
  public function setContext(\ArrayAccess $context){
 		 
 	 if(null !== $this->context){
