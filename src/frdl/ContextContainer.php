@@ -17,8 +17,6 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   protected static $factories = [];
   protected $_prefix = '${';	
   protected $_suffix = '}';	
-  protected $SecretSigningKey = null;	
-
 
 	
   protected function __construct(string $prefix = '${', string $suffix = '}'){      
@@ -48,7 +46,11 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	
 	
   public function serialize() {	  
-     list($analyzer, $serializer) =  $this->getSerializer();
+      if(getenv('APP_SECRET_CODE_SERIALIZATION')){
+	SerializableClosure::setSecretKey(getenv('APP_SECRET_CODE_SERIALIZATION'));     
+     }elseif(getenv('APP_SECRET')){
+	SerializableClosure::setSecretKey(getenv('APP_SECRET'));     
+     }
 	  
 	  $props = $this->getSerializableProperties();
 	  
@@ -63,12 +65,12 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	  
 	  $load = (function(ContextContainer &$instance) use($p, $props){
 	     foreach($props as $prop => $method){
-		     call_user_func_array([$instance, $method], [$p[$prop]]);
+		 call_user_func_array([$instance, $method], [$p[$prop]]);
 	     }		  
 	  });
 	  
 	  
-	   $str = $serializer->serialize($load);	  
+	   $str = serialize(new SerializableClosure($load));	  
 	  return $str;
   }
 
@@ -77,19 +79,20 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 
 
   
-	public function unserialize( $str)  {
-         list($analyzer, $serializer) =  $this->getSerializer();
+
+   public function unserialize($str)  {            
+      if(getenv('APP_SECRET_CODE_SERIALIZATION')){
+	SerializableClosure::setSecretKey(getenv('APP_SECRET_CODE_SERIALIZATION'));     
+     }elseif(getenv('APP_SECRET')){
+	SerializableClosure::setSecretKey(getenv('APP_SECRET'));     
+     }
 		
-		 $load = $serializer->unserialize($str);
-		 $load($this);
+	   $load = unserialize($str)->getClosure();
+   	   $load($this);
     }  
 	
-
-	public function setSecretSigningKey($key){  
-		$this->SecretSigningKey = $key;   
-		return $this;
-	} 
 	
+
  public function defaultInit(){
 	 if(null === $this->context){
 		 $context = new \Adbar\Dot;
