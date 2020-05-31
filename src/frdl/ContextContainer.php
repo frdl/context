@@ -4,7 +4,8 @@ namespace frdl;
 
 use Psr\Container\ContainerInterface;
 use Acclimate\Container\CompositeContainer;
-use frdl\ContextContainerSerializer;
+
+use Opis\Closure\SerializableClosure;
 
 
 class ContextContainer extends CompositeContainer implements ContainerInterface, \ArrayAccess,  \Serializable
@@ -43,12 +44,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   }
 	
 	
-  public function getSerializer() {
-	   $this->defaultInit();
-     $analyzer = new \SuperClosure\Analyzer\AstAnalyzer();	
-     $serializer = new ContextContainerSerializer($analyzer, (null=== $this->SecretSigningKey) ? null : $this->SecretSigningKey);
-     return [$analyzer, $serializer];
-  }	
+
 	
 	
   public function serialize() {	  
@@ -251,18 +247,8 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
                 return $container->get($id);
             }
         }
-
 	   
-	   $result = ($this->_has($id)) 
-		   ? $this->_get($id)
-		   : NotFoundException::fromPrevious($id);
-       // throw NotFoundException::fromPrevious($id);
-	   if(is_object($result) && $result instanceof \Throwable){
-		   throw $result;
-		   return null;
-	   }
-	   
-	   return $result;
+        return $this->_get($id);
     }	
 	
 
@@ -286,20 +272,20 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	$i = $id;
 	$idResolved = $this->resolvePlaceholder($id);    
 	$numParts = count(explode('.', $id));    
-	$container = null;
+	$container = $this;
 	$path = [];    
 		
 
 		
 	$result = ($this->context->has($id)) ?  $this->context->get($id) 
 		: (($this->context->has($idResolved)) ?  $this->context->get($idResolved) 
-		:  new NotFoundException
+		//:  new NotFoundException
+		   : null
 			)
 			; 
-	while($idResolved !== $id
-		   && (is_null($result) || !is_object($result) || $result instanceof NotFoundException) 
-		   && true !== $result instanceof ContainerInterface 
-	       && (!is_object($container) || true!== $container instanceof ContainerInterface)
+	while((is_null($result) || !is_object($result) || $result instanceof NotFoundException) 
+		  // && true !== $result instanceof ContainerInterface 
+	    //   && (!is_object($container) || true!== $container instanceof ContainerInterface)
 	      && count($path) < $numParts
 	     ){
 	      list($prefix, $i) = explode('.', $i, 2);
@@ -338,14 +324,12 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	$i = $id;
 	$idResolved = $this->resolvePlaceholder($id);    	
 	$numParts = count(explode('.', $id));    
-	$container = null;
+	$container = $this;
 	$path = [];    
 	$result = ($this->context->has($id)) ? true : 
 	    ($this->context->has($idResolved)) ? true :  false; 
-	while($idResolved !== $id
-		   && is_object($result) && $result instanceof NotFoundException 
-		   && true !== $result instanceof ContainerInterface 
-	       && (!is_object($container) || true!== $container instanceof ContainerInterface)
+	while( !$result
+	    //   && (!is_object($container) || true!== $container instanceof ContainerInterface)
 	      && count($path) < $numParts
 	     ){
 	      list($prefix, $i) = explode('.', $i, 2);
