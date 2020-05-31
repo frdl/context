@@ -77,7 +77,7 @@ class Context implements ContainerInterface
       return $context;
   }
   
-	/*
+	
     public function get($id)
     {
 	$i = $id;
@@ -146,7 +146,7 @@ class Context implements ContainerInterface
        return $result;
     }	
 	
-	*/
+	
  public function import(string $file, string $add = null, bool $throw = null){
 	  if(!\is_bool($throw)){
 	    $throw = false;	  
