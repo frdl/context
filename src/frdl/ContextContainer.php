@@ -8,6 +8,7 @@ use Acclimate\Container\CompositeContainer;
 use Opis\Closure\SerializableClosure;
 
 
+
 class ContextContainer extends CompositeContainer implements ContainerInterface, \ArrayAccess,  \Serializable
 {
   
@@ -20,16 +21,20 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 
 	
   protected function __construct(string $prefix = '${', string $suffix = '}'){      
-   //  $class = \Adbar\Dot::class;
+     $class = \Adbar\Dot::class;
    //  $this->context= new $class;
      $this
 	     ->pfx($prefix)
 	     ->sfx($suffix)
 	    ;	  
 	  
+	   $this->setContext(new $class);
+	   
 	  $this->containers = [
 	    //$this
 	  ];
+	  
+	  
   }
 	
   public function getSerializableProperties(){
@@ -99,9 +104,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 		$this->setContext($context); 
 	 } 	 
 	 
-	 if($this->has('config.keys.code-serializer')){
-		 $this->setSecretSigningKey($this->get('config.keys.code-serializer'));
-	 }
+
 	 
 	 return $this; 
  }
@@ -121,7 +124,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	 $methods = ['has','get','set','flatten'];
 	 
 	 foreach($methods as $m){
-		if(!is_callable([$context,$m])){
+		if(!\is_callable([$context,$m])){
 			throw new \Exception('$context MUST imlement '.get_class($context).'::'.$m.' in '.__METHOD__); 
 		}
 	 }
@@ -221,7 +224,9 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
       $this->context->setReference($items);
       return $this;
   }
-  public static function create(&$items = null, string $prefix = '${', string $suffix = '}'){      
+  public static function create(&$items = null, string $prefix = '${', string $suffix = '}'){     
+	  
+	 
       $context = new self($prefix, $suffix);
       if(null!==$items){
 		  $context->link($items);
