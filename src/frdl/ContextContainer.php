@@ -7,6 +7,7 @@ use Acclimate\Container\CompositeContainer;
 
 use Opis\Closure\SerializableClosure;
 
+use function Opis\Closure\{serialize as packToString, unserialize as loadFromString};
 
 
 class ContextContainer extends CompositeContainer implements ContainerInterface, \ArrayAccess,  \Serializable
@@ -37,63 +38,43 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	  
   }
 	
-  public function getSerializableProperties(){
-	return [	
-		'context' => 'setContext',	  
-		'cotainers' => 'setCotainers',
-		'_prefix' => 'pfx',
-		'_suffix' => 'sfx',
-	];  	  
-  }
-	
 	
 
 	
-	
-  public function serialize() {	  
-      if(getenv('APP_SECRET_CODE_SERIALIZATION')){
-	SerializableClosure::setSecretKey(getenv('APP_SECRET_CODE_SERIALIZATION'));     
-     }elseif(getenv('APP_SECRET')){
-	SerializableClosure::setSecretKey(getenv('APP_SECRET'));     
-     }
-	  
-	  $props = $this->getSerializableProperties();
-	  
-	  $p = [
-	  
-	  ];
-	  
-	  foreach(\array_keys($props) as $prop){
-		  $p[$prop] = $this->{$prop};
-	  }
-	  
-	  
-	  $load = (function(ContextContainer &$instance) use($p, $props){
-	     foreach($props as $prop => $method){
-		 call_user_func_array([$instance, $method], [$p[$prop]]);
-	     }		  
-	  });
-	  
-	  
-	   $str = serialize(new SerializableClosure($load));	  
-	  return $str;
-  }
 
    
 
+   public function serialize() {	
+	   
+	   if(getenv('APP_SECRET_CODE_SERIALIZATION')){
+		   SerializableClosure::setSecretKey(getenv('APP_SECRET_CODE_SERIALIZATION'));       
+	   }elseif(getenv('APP_SECRET')){
+		   SerializableClosure::setSecretKey(getenv('APP_SECRET'));   
+	   }
+	   
+   
+	   
+	  $ContainerStorageWrapper =new ContainerStorageWrapper();
+	   
+	   SerializableClosure::enterContext();  
+	     $packed = packToString($ContainerStorageWrapper($this));	   
+	   SerializableClosure::exitContext();
 
+	   return $packed;
+   }
 
   
 
    public function unserialize($str)  {            
-      if(getenv('APP_SECRET_CODE_SERIALIZATION')){
-	SerializableClosure::setSecretKey(getenv('APP_SECRET_CODE_SERIALIZATION'));     
-     }elseif(getenv('APP_SECRET')){
-	SerializableClosure::setSecretKey(getenv('APP_SECRET'));     
-     }
+	   if(getenv('APP_SECRET_CODE_SERIALIZATION')){
+		   SerializableClosure::setSecretKey(getenv('APP_SECRET_CODE_SERIALIZATION'));       
+	   }elseif(getenv('APP_SECRET')){
+		   SerializableClosure::setSecretKey(getenv('APP_SECRET'));   
+	   }
 		
-	   $load = unserialize($str)->getClosure();
-   	   $load($this);
+	   
+	   $ContainerStorageLoader = loadFromString($str);
+	   $ContainerStorageLoader($this);
     }  
 	
 	
@@ -109,18 +90,23 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	 return $this; 
  }
 	
- public function setContainers(array $containers){
-	 $this->containers = $containers;	 
-	return $this; 
+ public function setContainers(array $containers = null){
+	if(is_array($containers) && count($containerts)>0){
+		foreach($containers as $container){
+		  $this->addContainer($container);	
+		}
+	}
+	return  $this; 
  }
 	
-	
+ public function getContainers(){
+	return $this->containers; 
+ }
+ public function getContext(){
+	return $this->context; 
+ }	
  public function setContext(\ArrayAccess $context){
-		 
-	 if(null !== $this->context){
-		throw new \Exception('$context was applied already in '.__METHOD__); 
-	 } 
-	 
+
 	 $methods = ['has','get','set','flatten'];
 	 
 	 foreach($methods as $m){
@@ -130,7 +116,8 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	 }
 	 
 	 $this->context = $context;	 
-	return $this; 
+
+	 return $this;
  }
 	
 	
@@ -160,7 +147,9 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
  }	
 	
 	
-	
+  public function getPfx() {
+      return $this->_prefix;	  
+  }	
   public function pfx(string $prefix = '${') {
       $this->_prefix = $prefix;
       return $this;	  
@@ -169,7 +158,9 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
      return call_user_func_array([$this, 'pfx'], func_get_args());  
   } 		
 	
-	
+  public function getSfx() {
+      return $this->_suffix;	  
+  }		
   public function sfx(string $suffix = '}') {
       $this->_suffix = $suffix;
       return $this;	  
@@ -202,7 +193,27 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   }
     
 	
-  public function &__get($name){
+  public function &__get($name){	 
+	    $props = $this->getSerializableProperties();
+  
+	  
+	  if($this->has($name)){
+		return $this->get($name);  
+	  }
+	  
+	 
+			   
+	  	
+	  if(isset($props[$name])){	
+		  
+		  
+		  $res = call_user_func_array([$this, $props[$name]], []);  
+		  
+
+		  return $res;
+	  }
+	  
+		  
     return $this->get($name); 
   }
   
@@ -213,7 +224,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   public function __set($name, $value) {
 	   $this->defaultInit();
       call_user_func_array([$this->context, 'set'], [$name, $value]);  
-      return $this;
+     
   } 
   public function flatten() {
 	   $this->defaultInit();
@@ -234,18 +245,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
       return $context;
   }
   
-   public function ___get($id)
-    {
-        /** @var ContainerInterface $container */
-        foreach ($this->containers as $container) {
-            if ($container->has($id)) {
-                return $container->get($id);
-            }
-        }
-
-          return $this->_get($id);
-    }
-	
+ 
 	
    public function get($id)
     {  	  
@@ -256,7 +256,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
             }
         }
 	   
-        return $this->_get($id);
+     //  return $this->_get($id);
     }	
 	
 
