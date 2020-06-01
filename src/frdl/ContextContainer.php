@@ -7,6 +7,8 @@ use Acclimate\Container\CompositeContainer;
 
 use Opis\Closure\SerializableClosure;
 
+use frdl\ContainerStorageWrapper;
+
 use function Opis\Closure\{serialize as packToString, unserialize as loadFromString};
 
 
@@ -21,7 +23,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   protected $_suffix = '}';	
 
 	
-  protected function __construct(string $prefix = '${', string $suffix = '}'){      
+  public function __construct(string $prefix = '${', string $suffix = '}'){      
      $class = \Adbar\Dot::class;
    //  $this->context= new $class;
      $this
@@ -52,15 +54,73 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 		   SerializableClosure::setSecretKey(getenv('APP_SECRET'));   
 	   }
 	   
-   
+    $bin=new \frdl\webfan\Serialize\Binary\bin;
 	   
-	  $ContainerStorageWrapper =new ContainerStorageWrapper();
-	   
-	   SerializableClosure::enterContext();  
-	     $packed = packToString($ContainerStorageWrapper($this));	   
-	   SerializableClosure::exitContext();
+	  $ContainerStorageWrapper =new ContainerStorageWrapper(); 
 
-	   return $packed;
+	   
+	   
+	   
+
+	   $ContainerStorageWrapper->store($this);
+	   
+		    $containers = $ContainerStorageWrapper->stored['containers'];
+
+		    $_prefix = $ContainerStorageWrapper->stored['_prefix'];
+		    $_suffix = $ContainerStorageWrapper->stored['_suffix'];
+	        $loader=$ContainerStorageWrapper;
+	   
+	   
+	                 $stored = $bin->serialize( $containers );
+	   
+	   
+	             $containerLoader = function(&$i) use($stored){
+					  $bin=new \frdl\webfan\Serialize\Binary\bin;
+					  $containers =  $bin->unserialize($stored);
+					 
+					 	
+					 foreach($containers as $container){		  
+						 $i->addContainer($container);		
+					 }
+					 
+				 };
+	            
+
+	                  $stringContainerLoader = \Opis\Closure\serialize($containerLoader);
+	   
+	      $context = [
+			  'prefix' => $_prefix,
+			  'suffix' => $_suffix,
+			  'containerLoader' =>$stringContainerLoader,
+			//  'prefix' => $_prefix,
+			//  'prefix' => $_prefix,
+			   'context'=> $this->context->toJSON(),
+			  ];
+	        
+	  $contextString = $bin->serialize($context);
+	  
+	   
+	    $ContainerStorageWrapper->closure = function(&$i) use($contextString){
+			 $bin=new \frdl\webfan\Serialize\Binary\bin;
+			$context =$bin->unserialize($contextString);
+			  
+			 $storedContext = json_decode($context['context']);
+			$storedContext = (array)$storedContext;
+			 $i->add($storedContext);
+
+		      $containerLoader =$context['containerLoader'];
+		
+			  $Loader =unserialize($containerLoader);
+			  $Loader($i);
+					
+           return $i;
+        };
+	 
+	   
+	   
+        $packed = \Opis\Closure\serialize( $ContainerStorageWrapper->closure);
+
+	   return $bin->serialize(['packedStorageWrapper'=>$packed]);
    }
 
   
@@ -72,9 +132,14 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 		   SerializableClosure::setSecretKey(getenv('APP_SECRET'));   
 	   }
 		
-	   
-	   $ContainerStorageLoader = loadFromString($str);
-	   $ContainerStorageLoader($this);
+
+	    $bin=new \frdl\webfan\Serialize\Binary\bin;
+	    $unpacked = $bin->unserialize($str);
+	    $loader = $unpacked['packedStorageWrapper'];
+	  $loader = unserialize($loader);
+	  $newThis = $loader($this);
+
+	  return $newThis;
     }  
 	
 	
