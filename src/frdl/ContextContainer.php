@@ -191,7 +191,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	 $this->defaultInit();
 	return isset($this->context[$offset]);
  }
- public function offsetGet (  $offset ) : mixed {
+ public function offsetGet (  $offset )  {
  // return call_user_func_array([$this->context, 'offsetGet'], func_get_args());
 	 $this->defaultInit();
 	  return isset($this->context[$offset]) ? $this->context[$offset] : null;
