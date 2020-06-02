@@ -243,6 +243,7 @@ print_r($c->get('project')->title);
 
 ````
 #### Result
+...serialized...
 ````
 $s=serialize($container): <pre>string</pre><pre>C:21:"frdl\ContextContainer":1311:{@`packedStorageWrapper`C:32:"Opis\Closure\SerializableClosure":1233:{a:5:{s:3:"use";a:1:{s:13:"contextString";s:629:"@q`prefix`${`suffix`}`containerLoader`C:32:"Opis\Closure\SerializableClosure":485:{a:5:{s:3:"use";a:1:{s:6:"stored";s:63:"@<P`compiled\CompiledContainerP`frdl\ContextContainer";}s:8:"function";s:250:"function(&$i) use($stored){
 					  $bin=new \frdl\webfan\Serialize\Binary\bin;
@@ -267,7 +268,11 @@ $s=serialize($container): <pre>string</pre><pre>C:21:"frdl\ContextContainer":131
 			  $Loader($i);
 					
            return $i;
-        }";s:5:"scope";s:21:"frdl\ContextContainer";s:4:"this";N;s:4:"self";s:32:"00000000622cbbd3000000000dbdeb25";}}}</pre>$c = unserialize($s): <pre>object</pre>frdl\ContextContainer Object
+        }";s:5:"scope";s:21:"frdl\ContextContainer";s:4:"this";N;s:4:"self";s:32:"00000000622cbbd3000000000dbdeb25";}}}</pre>$c = unserialize($s): 
+````
+...unserialized...
+````
+
 (
     [context:protected] => 
     [containers:protected] => Array
