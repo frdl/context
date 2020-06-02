@@ -191,7 +191,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	 $this->defaultInit();
 	return isset($this->context[$offset]);
  }
- public function offsetGet (  $offset )  {
+ public function offsetGet (  $offset ) {
  // return call_user_func_array([$this->context, 'offsetGet'], func_get_args());
 	 $this->defaultInit();
 	  return isset($this->context[$offset]) ? $this->context[$offset] : null;
@@ -363,12 +363,12 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	     ){
 	      list($prefix, $i) = explode('.', $i, 2);
 	      $path[]=$this->resolvePlaceholder($prefix);
-	      $container = $container->get(implode('.', $path)); 	
+	      $container = $this->get(implode('.', $path)); 	
 	      $result = (is_object($container) && $container instanceof ContainerInterface 
-			  && $container->has($i)
+			  && $i && $container->has($i)
 			)
-		      ?  $container->get($i)
-		      :  null; 	
+		      ?  $i && $container->get($i)
+		      :  ($i && $this->has($i) ? $this->get($i) : $result); 	
 	}	    
 	
     if(is_callable($result) 
@@ -397,25 +397,31 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	$i = $id;
 	$idResolved = $this->resolvePlaceholder($id);    	
 	$numParts = count(explode('.', $id));    
-	$container = $this;
+	$container = $this->context;
 	$path = [];    
 	$result = ($this->context->has($id)) ? true : 
 	    ($this->context->has($idResolved)) ? true :  false; 
-	while( !$result
+		
+		
+		
+	while( true!==$result
 	    //   && (!is_object($container) || true!== $container instanceof ContainerInterface)
-	      && count($path) < $numParts
+	       && 
+		  count($path) < $numParts
 	     ){
 	      list($prefix, $i) = explode('.', $i, 2);
 	      $path[]=$this->resolvePlaceholder($prefix);
-	      $container = $container->get(implode('.', $path)); 	
+	      if(is_object($container) && true=== $container instanceof ContainerInterface ){
+			  $result = $this->has(implode('.', $path)) ? true : $result; 	
+		  }
 	      $result = (is_object($container) && $container instanceof ContainerInterface 
-			  && $container->has($i)
+			  && $i && $container->has($i)
 			)
 		      ?  true
-		      :  false; 	
+		      :   ($i && $this->has($i) ? true : $result); 	
 	}	    
 	    
-       return $result;
+       return true === $result ? true : false;
     }	
 	
 	
