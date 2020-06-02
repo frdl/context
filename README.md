@@ -8,16 +8,12 @@ Context ArrayObject DotNotation Container
  
  *   CompositeContainer [Container Adapters ](https://github.com/AcclimateContainer/acclimate-container)
      
-     
-     
     
-
+# Dynamic Variable Placeholders
 ````PHP
 <?php
 
 //...
-	
-	
 	
 $items = [
   'selected' => 'member2',	
@@ -147,6 +143,37 @@ ${test.member2}
 
 ````PHP
 <?php
+
+//App.php
+
+		$servicesLegacyContainer = new \compiled\CompiledContainer();
+		
+		try{
+		$configItems = [
+		//  'app' => $this,
+		];
+		$context = \frdl\ContextContainer::create($configItems, '${', '}');
+		}catch(\Exception $e){
+		  print_r(	$e->getMessage());
+		}
+
+		
+	$acclimator = new ContainerAcclimator;
+	$items = [
+	  // 'app' => $this,
+	];
+		
+
+    $serviceContainer = $acclimator->acclimate($servicesLegacyContainer);
+    $contextContainer = $acclimator->acclimate($context);
+
+	
+		$this->container = \frdl\ContextContainer::create($items, '${', '}');
+		$this->container->addContainer($serviceContainer);
+		$this->container->addContainer($contextContainer);
+
+
+//test.php
                $container = \frdlweb\Level2App::getInstance('production', $projectDir. \DIRECTORY_SEPARATOR)
 				   ->getContainer()
 				   ;
@@ -194,8 +221,8 @@ Array
 ````
 
 
-
-
+# Serialization
+Serialize/Unserialize between String-/Object Presentation
 ````PHP
 <?php
 
