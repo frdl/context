@@ -2,8 +2,14 @@
 Context ArrayObject DotNotation Container
 
 ## Extends/Implements
-    *   [Dot.Notation.From](https://github.com/adbario/php-dot-notation) e.g. `adbario/php-dot-notation` 
-        transforming to ArrayObjects 
+
+*    Dot.Notation.Identifiers tansforming into Array-Structure
+     e.g. `adbario/php-dot-notation` from [adbario](https://github.com/adbario/php-dot-notation)
+ 
+ *   CompositeContainer
+     
+     
+     
     
 
 ````PHP
