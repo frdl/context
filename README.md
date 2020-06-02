@@ -6,7 +6,7 @@ Context ArrayObject DotNotation Container
 *    Dot.Notation.Identifiers tansforming into Array-Structure
      e.g. `adbario/php-dot-notation` from [adbario](https://github.com/adbario/php-dot-notation)
  
- *   CompositeContainer
+ *   CompositeContainer [Container Adapters ](https://github.com/AcclimateContainer/acclimate-container)
      
      
      
