@@ -68,13 +68,77 @@ $content.= print_r( $dataSource->get('test.member1'), true);
 $content.= '</pre>';
 
 ````
+#### Result
+````
+$context->resolve()
+frdl\Context Object
+(
+    [context:protected] => Adbar\Dot Object
+        (
+            [items:protected] => Array
+                (
+                    [selected] => member2
+                    [test] => Array
+                        (
+                            [member1] => FooBar
+                            [member2] => Array
+                                (
+                                    [prop1] => member2.FooBar
+                                )
+                            [member2.prop1] => ${selected}.FooBar
+                        )
+                )
+        )
+    [_prefix:protected] => ${
+    [_suffix:protected] => }
+)
+$context->get("test.member2.prop1")
+$context->resolve()->all()
+Array
+(
+    [selected] => member2
+    [test] => Array
+        (
+            [member1] => FooBar
+            [member2] => Array
+                (
+                    [prop1] => member2.FooBar
+                )
+            [member2.prop1] => ${selected}.FooBar
+        )
+)
+$context->all()
+Array
+(
+    [selected] => member2
+    [test] => Array
+        (
+            [member1] => ${test.member2}
+            [member2] => FooBar
+            [member2.prop1] => ${selected}.FooBar
+        )
+)
+$context->resolve()->flatten()
+Array
+(
+    [selected] => member2
+    [test.member1] => FooBar
+    [test.member2.prop1] => ${selected}.FooBar
+)
+$value
+afsasf FooBar
+test.member1
+${test.member2}
+````
 
 
 # Multiple Combined Containers
 
 ````PHP
 <?php
-
+               $container = \frdlweb\Level2App::getInstance('production', $projectDir. \DIRECTORY_SEPARATOR)
+				   ->getContainer()
+				   ;
 
 $env = [];
 $context = \frdl\ContextContainer::create($env);
