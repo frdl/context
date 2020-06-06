@@ -16,6 +16,7 @@
 
     },
     "autoload": {
+        "classmap" : ["src/classes/"],
         "psr-4": {
             "frdl\\": "src/frdl/"
         }
