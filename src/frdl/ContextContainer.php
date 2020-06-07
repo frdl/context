@@ -32,11 +32,11 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	    ;	  
 	  
 	   $this->setContext(new $class);
-	   
+	/*   
 	  $this->containers = [
 	    //$this
 	  ];
-	  
+	 */ 
 	  
   }
 	
@@ -147,12 +147,21 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
  public function defaultInit(){
 	 if(null === $this->context){
 		 $context = new \Adbar\Dot;
-		$this->setContext($context); 
+		 $this->setContext($context); 
+		 $this->set('__STR_CONTAINERS', '__containers');
 	 } 	 
 	 
 
 	 
 	 return $this; 
+ }
+	
+ public function addContainer(ContainerInterface $container){
+	 $this->defaultInit();
+	 $idContainers = $this->get('__STR_CONTAINERS');
+	 $id = $idContainers.'.'. \spl_object_id($container);
+	 $this->importContainer($id, $container);
+	 return $this;
  }
 	
  public function setContainers(array $containers = null){
@@ -163,6 +172,25 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	}
 	return  $this; 
  }
+	
+ public function importContainers(array $containers = null){
+	if(is_array($containers) && count($containerts)>0){
+		foreach($containers as $id => $container){
+		  $this->importContainer($id, $container);	
+		}
+	}
+	return  $this; 
+ }
+	
+ public function importContainer(string $id, ContainerInterface $container){
+	 $this->defaultInit();
+	 $idResolved = $this->resolvePlaceholder($id);
+     $this->containerObjectIds[$id] = $idResolved;
+	 $this->context->set($idResolved, $container);
+	 return $this;
+ }
+	
+	
 	
  public function getContainers(){
 	return $this->containers; 
@@ -281,11 +309,12 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 		  
     return $this->get($name); 
   }
-  
+  /*
   public function __invoke(callable $script) {
 	   $this->defaultInit();
 	 return $script($this->context);      
   }
+  */
   public function __set($name, $value) {
 	   $this->defaultInit();
       call_user_func_array([$this->context, 'set'], [$name, $value]);  
@@ -312,22 +341,11 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
   
  
 	
-   public function get($id)
-    {  	  
-       
-        foreach ($this->containers as $container) {
-             if ( \spl_object_id($container) !== \spl_object_id($this) && $container->has($id)) {
-                return $container->get($id);
-            }
-        }
-	   
-     //  return $this->_get($id);
-    }	
-	
+
 
    public function has($id)
     {
-        /** @var ContainerInterface $container */
+        /** @var ContainerInterface $container
         foreach ($this->containers as $container) {
              if ( \spl_object_id($container) !== \spl_object_id($this) && $container->has($id)) {
                 return true;
@@ -335,43 +353,69 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
         }
 
         return $this->_has($id);
+		*/
+	   
+	   if(true===$this->context->has($id) ){
+		 return true;   
+	   }
+		
+	     foreach($this->containerObjectIds as $_id => $_idResolved){
+			if($this->context->has($_idResolved) && $this->context->get($_idResolved)->has( $id) ){
+				return true;
+			}
+	 	}   
+	   
+	   return false;
     }
 	
 	
-    public function _get($id)
-    {
-		 $this->defaultInit();
-		
-	$i = $id;
-	$idResolved = $this->resolvePlaceholder($id);    
-	$numParts = count(explode('.', $id));    
-	$container = $this;
-	$path = [];    
-		
-
-		
-	$result = ($this->context->has($id)) ?  $this->context->get($id) 
-		: (($this->context->has($idResolved)) ?  $this->context->get($idResolved) 
-		//:  new NotFoundException
-		   : null
-			)
-			; 
-	while((is_null($result) || !is_object($result) || $result instanceof NotFoundException) 
-		  // && true !== $result instanceof ContainerInterface 
-	    //   && (!is_object($container) || true!== $container instanceof ContainerInterface)
-	      && count($path) < $numParts
-	     ){
-	      list($prefix, $i) = explode('.', $i, 2);
-	      $path[]=$this->resolvePlaceholder($prefix);
-	      $container = $this->get(implode('.', $path)); 	
-	      $result = (is_object($container) && $container instanceof ContainerInterface 
-			  && $i && $container->has($i)
-			)
-		      ?  $i && $container->get($i)
-		      :  ($i && $this->has($i) ? $this->get($i) : $result); 	
-	}	    
 	
-    if(is_callable($result) 
+	  
+	public function get($id)
+    {  	  	   
+	  
+	   $this->defaultInit();
+		
+	  $i = 0;
+	  $idResolved = $this->resolvePlaceholder($id);   
+	  $parts = explode('.', $idResolved);	
+	  $restParts = $parts;	
+	  $numParts = count($parts); 
+	  $path = '';  	
+	  $restPath = '';  	
+	  $pathParts = [];  	
+	  $result = null; 	
+		
+			
+		if(true===$this->context->has($idResolved) ){
+		 $result = $this->context->get($idResolved);   
+	   }
+		
+	 if(null===$result){	
+		foreach($this->containerObjectIds as $_id => $_idResolved){
+			if($this->context->has($_idResolved) && $this->context->get($_idResolved)->has( $idResolved) ){
+				$result = $this->context->get($_idResolved)->get( $idResolved );
+				break;
+			}
+		}
+	 }
+		
+    	while(null===$result && $i < $numParts){
+		  $i++;
+		  	$pathParts[]=array_shift($restParts);
+			$restPath = implode('.', $restParts);
+			$path=implode('.', $pathParts);
+			if($this->context->has($path) && $this->context->get($path) instanceof ContainerInterface
+			   && $this->context->get($path)->has($restPath) 
+			  ){
+				 $result = $this->context->get($path)->get($restPath);
+				break;
+			}
+			
+			
+		}
+	   
+	 if(is_callable($result) 
        && !(isset(self::$factories[\spl_object_id($result)]) && self::$factories[\spl_object_id($result)] === $idResolved) ){	    
        if(is_callable([$container, 'call'])){	       
 	    $result = call_user_func_array([$container, 'call'], [$result]);   
@@ -384,46 +428,17 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	if(is_callable($result)){
 	    self::$factories[\spl_object_id($result)] = $idResolved;	
 	}
-	$this->context->set($idResolved, $result);
-    }	    
-	    
-       return $result;
-    }
-	
-    public function _has($id)
-    {
-		 $this->defaultInit();
+	     $this->context->set($idResolved, $result);
+    }	    	
+
 		
-	$i = $id;
-	$idResolved = $this->resolvePlaceholder($id);    	
-	$numParts = count(explode('.', $id));    
-	$container = $this->context;
-	$path = [];    
-	$result = ($this->context->has($id)) ? true : 
-	    ($this->context->has($idResolved)) ? true :  false; 
-		
-		
-		
-	while( true!==$result
-	    //   && (!is_object($container) || true!== $container instanceof ContainerInterface)
-	       && 
-		  count($path) < $numParts
-	     ){
-	      list($prefix, $i) = explode('.', $i, 2);
-	      $path[]=$this->resolvePlaceholder($prefix);
-	      if(is_object($container) && true=== $container instanceof ContainerInterface ){
-			  $result = $this->has(implode('.', $path)) ? true : $result; 	
-		  }
-	      $result = (is_object($container) && $container instanceof ContainerInterface 
-			  && $i && $container->has($i)
-			)
-		      ?  true
-		      :   ($i && $this->has($i) ? true : $result); 	
-	}	    
-	    
-       return true === $result ? true : false;
+      return $result;
     }	
 	
+	
+
+	
+  
 	
  public function import(string $file, string $add = null, bool $throw = null){
 	  $this->defaultInit();
