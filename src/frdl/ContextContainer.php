@@ -24,14 +24,14 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 
 	
   public function __construct(string $prefix = '${', string $suffix = '}'){      
-     $class = \Adbar\Dot::class;
+   //  $class = \Adbar\Dot::class;
    //  $this->context= new $class;
      $this
 	     ->pfx($prefix)
 	     ->sfx($suffix)
 	    ;	  
 	  
-	   $this->setContext(new $class);
+	 //  $this->setContext(new $class);
 	/*   
 	  $this->containers = [
 	    //$this
@@ -148,9 +148,9 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	 if(null === $this->context){
 		 $context = new \Adbar\Dot;
 		 $this->setContext($context); 
-		 $this->set('__STR_CONTAINERS', '__containers');
 	 } 	 
 	 
+		 $this->context->set('__STR_CONTAINERS', '__containers');
 
 	 
 	 return $this; 
@@ -158,8 +158,12 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	
  public function addContainer(ContainerInterface $container){
 	 $this->defaultInit();
-	 $idContainers = $this->get('__STR_CONTAINERS');
+	 $idContainers = $this->context->get('__STR_CONTAINERS');
+	 
+	 
 	 $id = $idContainers.'.'. \spl_object_id($container);
+	
+	 
 	 $this->importContainer($id, $container);
 	 return $this;
  }
@@ -359,7 +363,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 		 return true;   
 	   }
 		
-	     foreach($this->containerObjectIds as $_id => $_idResolved){
+	     foreach($this->containerObjectIds as $_idResolved){
 			if($this->context->has($_idResolved) && $this->context->get($_idResolved)->has( $id) ){
 				return true;
 			}
@@ -376,7 +380,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	  
 	   $this->defaultInit();
 		
-	  $i = 0;
+	  $i = -1;
 	  $idResolved = $this->resolvePlaceholder($id);   
 	  $parts = explode('.', $idResolved);	
 	  $restParts = $parts;	
@@ -385,53 +389,72 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	  $restPath = '';  	
 	  $pathParts = [];  	
 	  $result = null; 	
+	  $container = $this;	
 		
-			
+		
 		if(true===$this->context->has($idResolved) ){
-		 $result = $this->context->get($idResolved);   
-	   }
-		
-	 if(null===$result){	
-		foreach($this->containerObjectIds as $_id => $_idResolved){
-			if($this->context->has($_idResolved) && $this->context->get($_idResolved)->has( $idResolved) ){
-				$result = $this->context->get($_idResolved)->get( $idResolved );
+		 $result = $this->context->get($idResolved);  				 
+			if(is_callable($result)      
+			   && !(isset(self::$factories[\spl_object_id($result)]) && self::$factories[\spl_object_id($result)] === $idResolved) ){
+      
+				if(is_callable([$container, 'call'])){	       	 
+					$result = call_user_func_array([$container, 'call'], [$result]);       
+				}elseif(is_callable([$container, 'make'])){	
+					$result = call_user_func_array([$container, 'make'], [$result]);       
+				}else{	
+					$result = call_user_func_array($result, [$this]);       
+				}
+		 	    
+
+				if(is_callable($result)){	
+					self::$factories[\spl_object_id($result)] = $idResolved;	
+				}
+	
+	    
+				$this->context->set($idResolved, $result);   
+			}	 
+	   }		
+
+
+
+	if(null===$result || (is_object($result) && $result instanceof \frdl\NotFoundException)){		 
+		foreach($this->containerObjectIds as $_idResolved){			
+			if($this->context->has($_idResolved) && $this->context->get($_idResolved) instanceof ContainerInterface && $this->context->get($_idResolved)->has( $idResolved) ){				
+				 $container = $this->context->get($_idResolved);	
+				 $result = $container->get( $idResolved );				
 				break;
 			}
 		}
-	 }
+	 }	
 		
-    	while(null===$result && $i < $numParts){
+	/*	*/		
+
+	
+		
+    	while((null===$result || (is_object($result) && $result instanceof \frdl\NotFoundException)) && $i < $numParts){
 		  $i++;
 		  	$pathParts[]=array_shift($restParts);
 			$restPath = implode('.', $restParts);
-			$path=implode('.', $pathParts);
+			$path=implode('.', $pathParts);	
+			
+			
 			if($this->context->has($path) && $this->context->get($path) instanceof ContainerInterface
 			   && $this->context->get($path)->has($restPath) 
 			  ){
-				 $result = $this->context->get($path)->get($restPath);
+			
+				 $container = $this->context->get($path);
+				 $result = $container->get($restPath);				
+
 				break;
 			}
 			
-			
 		}
-	   
-	 if(is_callable($result) 
-       && !(isset(self::$factories[\spl_object_id($result)]) && self::$factories[\spl_object_id($result)] === $idResolved) ){	    
-       if(is_callable([$container, 'call'])){	       
-	    $result = call_user_func_array([$container, 'call'], [$result]);   
-       }elseif(is_callable([$container, 'make'])){
-	    $result = call_user_func_array([$container, 'make'], [$result]);   
-       }else{
-	    $result = call_user_func_array($result, [$this]);    
-       }
-	    
-	if(is_callable($result)){
-	    self::$factories[\spl_object_id($result)] = $idResolved;	
-	}
-	     $this->context->set($idResolved, $result);
-    }	    	
+	 
 
-		
+
+          if(null===$result || (is_object($result) && $result instanceof \Exception)){
+			throw $result;  
+		  }
       return $result;
     }	
 	
