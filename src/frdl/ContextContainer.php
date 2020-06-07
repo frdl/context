@@ -54,73 +54,19 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 		   SerializableClosure::setSecretKey(getenv('APP_SECRET'));   
 	   }
 	   
-    $bin=new \frdl\webfan\Serialize\Binary\bin;
+      $bin=new \frdl\webfan\Serialize\Binary\bin;
 	   
-	  $ContainerStorageWrapper =new ContainerStorageWrapper(); 
-
-	   
-	   
+	  $ContainerStorageWrapper =new ContainerStorageWrapper();   
 	   
 
-	   $ContainerStorageWrapper->store($this);
-	   
-		    $containers = $ContainerStorageWrapper->stored['containers'];
-
-		    $_prefix = $ContainerStorageWrapper->stored['_prefix'];
-		    $_suffix = $ContainerStorageWrapper->stored['_suffix'];
-	        $loader=$ContainerStorageWrapper;
-	   
-	   
-	                 $stored = $bin->serialize( $containers );
-	   
-	   
-	             $containerLoader = function(&$i) use($stored){
-					  $bin=new \frdl\webfan\Serialize\Binary\bin;
-					  $containers =  $bin->unserialize($stored);
-					 
-					 	
-					 foreach($containers as $container){		  
-						 $i->addContainer($container);		
-					 }
-					 
-				 };
-	            
-
-	                  $stringContainerLoader = \Opis\Closure\serialize($containerLoader);
-	   
-	      $context = [
-			  'prefix' => $_prefix,
-			  'suffix' => $_suffix,
-			  'containerLoader' =>$stringContainerLoader,
-			//  'prefix' => $_prefix,
-			//  'prefix' => $_prefix,
-			   'context'=> $this->context->toJSON(),
-			  ];
-	        
-	  $contextString = $bin->serialize($context);
-	  
-	   
-	    $ContainerStorageWrapper->closure = function(&$i) use($contextString){
-			 $bin=new \frdl\webfan\Serialize\Binary\bin;
-			$context =$bin->unserialize($contextString);
-			  
-			 $storedContext = json_decode($context['context']);
-			$storedContext = (array)$storedContext;
-			 $i->add($storedContext);
-
-		      $containerLoader =$context['containerLoader'];
-		
-			  $Loader =unserialize($containerLoader);
-			  $Loader($i);
-					
-           return $i;
-        };
+	     $loaderArr = $ContainerStorageWrapper($this, null);
 	 
 	   
-	   
-        $packed = \Opis\Closure\serialize( $ContainerStorageWrapper->closure);
+	
+   
+        $packed = $bin->serialize($loaderArr);
 
-	   return $bin->serialize(['packedStorageWrapper'=>$packed]);
+	   return $packed;
    }
 
   
@@ -131,15 +77,13 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	   }elseif(getenv('APP_SECRET')){
 		   SerializableClosure::setSecretKey(getenv('APP_SECRET'));   
 	   }
-		
+		  $bin=new \frdl\webfan\Serialize\Binary\bin;
+         
+	    $loaderArr = $bin->unserialize($str);
+	   
+	   
+	    $instance = ContainerStorageWrapper::load($this, $loaderArr['stored']);
 
-	    $bin=new \frdl\webfan\Serialize\Binary\bin;
-	    $unpacked = $bin->unserialize($str);
-	    $loader = $unpacked['packedStorageWrapper'];
-	  $loader = unserialize($loader);
-	  $newThis = $loader($this);
-
-	  return $newThis;
     }  
 	
 	
@@ -195,10 +139,11 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
  }
 	
 	
-	
+	/*
  public function getContainers(){
 	return $this->containers; 
  }
+ */
  public function getContext(){
 	return $this->context; 
  }	
@@ -279,13 +224,13 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
       if(null!== $this->context && is_callable([$this->context, $name])){
           return call_user_func_array([$this->context, $name], $arguments);
       }
-      
+      /*
 	   foreach ($this->containers as $container) {
           if( \spl_object_id($container) !== \spl_object_id($this) && is_callable([$container, $name])){
               return call_user_func_array([$container, $name], $arguments);
           }		   
 	   }
-	  
+	  */
       return new NotFoundException;
   }
     
@@ -389,7 +334,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	  $restPath = '';  	
 	  $pathParts = [];  	
 	  $result = null; 	
-	  $container = $this;	
+	  $container = $this->context;	
 		
 		
 		if(true===$this->context->has($idResolved) ){
@@ -444,7 +389,9 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 			
 				 $container = $this->context->get($path);
 				 $result = $container->get($restPath);				
-
+                 if(!is_callable($result)){
+					 $this->context->set($restPath, $result);
+				 }
 				break;
 			}
 			
@@ -452,7 +399,7 @@ class ContextContainer extends CompositeContainer implements ContainerInterface,
 	 
 
 
-          if(null===$result || (is_object($result) && $result instanceof \Exception)){
+          if(is_object($result) && $result instanceof \Throwable){
 			throw $result;  
 		  }
       return $result;
