@@ -16,18 +16,27 @@ class ContainerStorageWrapper
  {
 
 		     public $stored = [];
-             public $loader;
+             public $load;
 	
 	
 	         const PROPERTIES_MAPPING = [
-		'context' =>[
+	 /*	
+	   'context' =>[
 			'set'=> 'setContext',	  
 			'get'=> 'getContext',			
 		],
+				
 		'containers' => [
 			'set'=> 'setContainers',	  
 			'get'=> 'getContainers',			
 		],
+		*/
+		 
+		'data' => [
+			'set'=> 'link',	  
+			'get'=> 'flatten',			
+		],			 
+				 
 		'_prefix' => [
 			'set'=> 'pfx',	  
 			'get'=> 'getPfx',			
@@ -47,68 +56,61 @@ class ContainerStorageWrapper
 			   }	
 			   
 			   
-			    $this->load();
-			   
-	         return $this;	
+			 return $this->loader($instance,  $this->stored);
 		   }
 	 
 	       
-	public function load(){ 
-			//$payload =$this->stored;
-	       // $payload = [
-			//     'stored.php'=>var_export($this->stored, true),
-			//	
-			//];
-	//	print_r( $this->stored['context']);
+	public function loader(\frdl\ContextContainer $instance, $_stored){ 
+
 		
-		
-		    $containers = $this->stored['containers'];
-		  //  $context = var_export($this->stored['context']->flatten(), true);
-		  //  $jsonCotextContainer = $this->stored['context']->toJson();
-		    $_prefix = $this->stored['_prefix'];
-		    $_suffix = $this->stored['_suffix'];
-			$this->loader=function(\frdl\ContextContainer $instance)  use($_prefix, $_suffix, $containers){
-		          $instance->setContainers($containers);
-		          $instance->pfx($_prefix);
-		          $instance->sfx($_suffix);
-	               return [$_prefix, $_suffix, $containers];
+		/*
+			$this->load=function(\frdl\ContextContainer &$instance, ContainerStorageWrapper $wrapper){
+				
+		     //     $instance->setContainers($containers);
+		          $instance->pfx($wrapper->stored['_prefix']);
+		          $instance->sfx($wrapper->stored['_suffix']);
+				
+				foreach(\frdl\ContainerStorageWrapper::PROPERTIES_MAPPING as $prop => $methods){		    
+				   call_user_func_array([$instance, $methods['set']], [$wrapper->stored[$prop]]);	   
+			   }		
+				
+				
+	              return $instance;
 			};		
+		*/
 		
 		
-		
-	// 	$wrapper = new SerializableClosure($loader);
-    //     $serialized = \Opis\Closure\serialize($wrapper);
-	// 	return $serialized;
-		
-	//   return \Opis\Closure\serialize($loader);	
-		
-		
-	//	return \Opis\Closure\serialize($loader);
-		return $this;
+
+		return ['stored'=>$_stored];
 	}
 	       
-        public function __invoke(\frdl\ContextContainer $instance){    				   			
-			
-			
-				if(null===$this->stored || 0===count($this->stored) ){
-				   $this->store($instance);
-			   }elseif(null!==$this->stored || 0<count($this->stored)){
-				  $this->restore($instance);					
+	
+	public static function load(\frdl\ContextContainer $instance, $stored = null){
+	
+		foreach(\frdl\ContainerStorageWrapper::PROPERTIES_MAPPING as $prop => $methods){		    
+				   call_user_func_array([$instance, $methods['set']], [$stored[$prop]]);	 			
+		}					
+				
+	    return $instance;
+	}
+	
+	
+	
+        public function __invoke(\frdl\ContextContainer $instance, callable $loader = null){   
+					
+				if(null === $loader){
+				   return $this->store($instance);
+			   //}elseif(null!==$this->stored || 0<count($this->stored)){
+				}elseif(is_callable($loader)){					
+				  return $this->restore($instance, $loader);					
 				}		
-			
-			
-	     return $this;
 	   }
 	
-		   public function restore(ContextContainer $instance){			   
+	   public function restore(\frdlContextContainer $instance, callable $loader){			   
+	        $loader($instance);
 			   
-			   foreach(self::PROPERTIES_MAPPING as $prop => $methods){		    
-				   call_user_func_array([$instance, $methods['set']], [$this->stored[$prop]]);	   
-			   }	
-			   
-			   
-	         return $this;				           
-		   }	
+	        return $instance;				           
+	  }	
 		   
  
 	  
