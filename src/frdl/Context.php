@@ -20,14 +20,19 @@ class Context implements ContainerInterface
 	    ;	  
   }
 	
+  public static function runFile($file, array $context, int $flags = \EXTR_OVERWRITE, string $prefix = ""){
+	  extract($context, $flags, $prefix);
+	  return require $file;	  
+  }
+	
   public function pfx(string $prefix = '${') {
       $this->_prefix = $prefix;
       return $this;	  
   }
+	
   public function prefix(string $prefix = '${') {
      return call_user_func_array([$this, 'pfx'], func_get_args());  
-  } 		
-	
+  } 	
 	
   public function sfx(string $suffix = '}') {
       $this->_suffix = $suffix;
